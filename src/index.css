@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Global Lavender Overrides for all color palettes */
+  --color-indigo-50: #f7f5ff;
+  --color-indigo-100: #eee7ff;
+  --color-indigo-150: #e3d8ff;
+  --color-indigo-200: #d8c7ff;
+  --color-indigo-300: #c2acff;
+  --color-indigo-400: #aa8eff;
+  --color-indigo-500: #936eff;
+  --color-indigo-600: #7c4dff;
+  --color-indigo-700: #6b33eb;
+  --color-indigo-800: #5720d6;
+  --color-indigo-900: #4614b8;
+  --color-indigo-950: #29087c;
+
+  --color-teal-50: #faf8ff;
+  --color-teal-100: #f2edff;
+  --color-teal-150: #e7deff;
+  --color-teal-200: #dbcdff;
+  --color-teal-300: #c6b2ff;
+  --color-teal-400: #af96ff;
+  --color-teal-500: #9878ff;
+  --color-teal-600: #8159ff;
+  --color-teal-700: #7044f0;
+  --color-teal-800: #5c31db;
+  --color-teal-900: #4a21bd;
+  --color-teal-950: #2d0fa3;
+
+  --color-emerald-50: #fdfbff;
+  --color-emerald-100: #f6f1ff;
+  --color-emerald-150: #ebdfff;
+  --color-emerald-200: #e1d1ff;
+  --color-emerald-300: #ceb5ff;
+  --color-emerald-400: #b89aff;
+  --color-emerald-500: #a27eff;
+  --color-emerald-600: #8b63ff;
+  --color-emerald-700: #7a50f0;
+  --color-emerald-800: #653be0;
+  --color-emerald-900: #5227cc;
+  --color-emerald-950: #3312ad;
+
+  --color-blue-50: #f5f2ff;
+  --color-blue-100: #ebe5ff;
+  --color-blue-150: #ded3ff;
+  --color-blue-200: #d0beff;
+  --color-blue-300: #bca3ff;
+  --color-blue-400: #a583ff;
+  --color-blue-500: #8b5eff;
+  --color-blue-600: #7442f5;
+  --color-blue-700: #5f2deb;
+  --color-blue-800: #4d1fd1;
+  --color-blue-900: #3f19ab;
+  --color-blue-950: #250b73;
+
+  --color-violet-50: #f7f5ff;
+  --color-violet-100: #eee7ff;
+  --color-violet-150: #e3d8ff;
+  --color-violet-200: #d8c7ff;
+  --color-violet-300: #c2acff;
+  --color-violet-400: #aa8eff;
+  --color-violet-500: #936eff;
+  --color-violet-600: #7c4dff;
+  --color-violet-700: #6b33eb;
+  --color-violet-800: #5720d6;
+  --color-violet-900: #4614b8;
+  --color-violet-950: #29087c;
+
+  --color-purple-50: #fbf9ff;
+  --color-purple-100: #f3edff;
+  --color-purple-150: #e8ddff;
+  --color-purple-200: #dbcbff;
+  --color-purple-300: #c7adff;
+  --color-purple-400: #b291ff;
+  --color-purple-500: #9c75ff;
+  --color-purple-600: #8559ff;
+  --color-purple-700: #7445eb;
+  --color-purple-800: #5e32db;
+  --color-purple-900: #4d22bd;
+  --color-purple-950: #2f10a3;
+
+  --color-slate-150: #eaeef4;
+  --color-amber-150: #fef08a;
+}
+
+/* Custom horizontal scrollbar for the queries tray */
+.queries-scroll-container {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 110, 255, 0.3) transparent;
+}
+
+.queries-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.queries-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.queries-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(147, 110, 255, 0.35);
+  border-radius: 9999px;
+}
+
+.queries-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(147, 110, 255, 0.6);
+}
+

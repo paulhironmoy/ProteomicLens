@@ -1,0 +1,6 @@
+{
+  "name": "ProteomicLens",
+  "description": "An AI-powered single-cell proteomics annotation pipeline including Quality Control, Batch Correction, Clustering, Three-Round Annotation, and UniProt Integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
