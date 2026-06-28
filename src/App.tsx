@@ -175,7 +175,7 @@ export default function App() {
     setSelectedClusterId(null);
 
     const stepVal = (typeof initialStep === "number" && !isNaN(initialStep)) ? initialStep : 0;
-    const shouldSkip = skipRunAnimation || (typeof initialStep === "number");
+    const shouldSkip = skipRunAnimation;
 
     const cellsDesc = datasetType === 'pride' 
       ? `${demo.totalCells} (THP-1 monocyte/macrophage lineages)`
@@ -391,8 +391,6 @@ Click on each stage to check results.`,
     }
 
     setUploadError(null);
-    setIsRunning(true);
-    setActiveStep(0);
 
     // Read CSV for preview
     const reader = new FileReader();
@@ -427,11 +425,16 @@ Click on each stage to check results.`,
       });
     };
     reader.readAsText(file);
+  };
+
+  // Run the uploaded custom CSV dataset from the home page
+  const handleRunCustomDataset = () => {
+    if (isRunning || !uploadedFile) return;
 
     // Create a personalized experiment based on the uploaded file details
     const customExperiment: PipelineData = {
       experimentId: `EXP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`,
-      filename: file.name,
+      filename: uploadedFile.name,
       totalCells: 1000 + Math.floor(Math.random() * 500),
       totalProteins: 16,
       missingnessPercent: 64.2,
@@ -470,19 +473,19 @@ Click on each stage to check results.`,
       cells: generateLeducDataset().cells.slice(0, 1000) // Sample coordinates
     };
 
+    setIsRunning(true);
     setExecutingStep(0);
     setActiveStep(0);
     setSelectedClusterId(null);
     setStageProgress([0, 0, 0, 0, 0, 0, 0, 0]);
     setStageTimes(["", "", "", "", "", "", "", ""]);
-
     setPipelineData(customExperiment);
 
     const systemGreeting: ChatMessage = {
       id: "system-init-custom",
       sender: "system",
-      text: `Custom dataset uploaded successfully!
-File: ${file.name}
+      text: `Custom dataset run initiated!
+File: ${uploadedFile.name}
 Assigned Experiment ID: ${customExperiment.experimentId}
 Initiating full adaptive quality control & Leiden community annotation...`,
       timestamp: new Date().toLocaleTimeString()
@@ -731,8 +734,8 @@ Click on each stage to check results.`,
                 <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-950 font-sans max-w-3xl mx-auto leading-tight">
                   Single Cell Proteomics — Done Fast
                 </h2>
-                <p className="text-xs sm:text-xs md:text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed font-semibold">
-                  Annotation time cut from 3–4 days to &lt;2 minutes. ProteomicLens is the first single-cell proteomics (SCP) platform with enforced canonical terminology and confidence-tiered AI annotation, enabling same-visit clinical proteomics decisions.
+                <p className="text-xs sm:text-xs md:text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed font-semibold font-sans">
+                  Annotation time cut from 3–4 days to &lt;2 minutes. ProteomicLens is the first single-cell proteomics (SCP) platform to combine enforced canonical terminology and confidence-tiered AI annotation with real-time literature lookup—bypassing 10+ hours of manual paper verification to enable same-visit clinical proteomics decisions.
                 </p>
               </div>
 
@@ -948,17 +951,49 @@ Click on each stage to check results.`,
                     </div>
                     
                     <div className="pt-5 space-y-2">
-                      <label className="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98] group-hover:border-indigo-300">
-                        <Upload className="w-3 h-3 text-indigo-500" />
-                        Upload Custom CSV
-                        <input
-                          type="file"
-                          accept=".csv"
-                          onChange={handleFileUpload}
-                          className="hidden"
+                      {uploadedFile && (
+                        <div className="text-center pb-2">
+                          <span className="text-[10px] font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-md inline-block max-w-full truncate font-semibold">
+                            📄 {uploadedFile.name}
+                          </span>
+                        </div>
+                      )}
+
+                      {uploadedFile ? (
+                        <button
+                          onClick={handleRunCustomDataset}
                           disabled={isRunning}
-                        />
-                      </label>
+                          className="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/10 active:scale-[0.98] disabled:opacity-40 cursor-pointer animate-fade-in"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Run Custom Cohort
+                        </button>
+                      ) : (
+                        <label className="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-700 font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98] group-hover:border-indigo-300">
+                          <Upload className="w-3 h-3 text-indigo-500" />
+                          Upload Custom CSV
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                            disabled={isRunning}
+                          />
+                        </label>
+                      )}
+
+                      {uploadedFile && (
+                        <button
+                          onClick={() => {
+                            setUploadedFile(null);
+                            setUploadError(null);
+                          }}
+                          className="w-full px-4 py-2 rounded-xl border border-rose-250 bg-rose-50/50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-[0.98] animate-fade-in"
+                        >
+                          <X className="w-3 h-3 text-rose-500" />
+                          <span>Clear / Reset File</span>
+                        </button>
+                      )}
 
                       <button
                         onClick={handlePreviewCustom}
@@ -966,11 +1001,11 @@ Click on each stage to check results.`,
                         className={`w-full px-4 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                           uploadedFile
                             ? "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700 cursor-pointer shadow-sm active:scale-[0.98]"
-                            : "bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed"
+                            : "bg-slate-50 border-slate-200 text-slate-350 cursor-not-allowed"
                         }`}
                         title={uploadedFile ? "Click to preview uploaded CSV file" : "Upload a CSV file first to preview its contents"}
                       >
-                        <FileText className={`w-3 h-3 ${uploadedFile ? "text-indigo-600" : "text-slate-300"}`} />
+                        <FileText className={`w-3 h-3 ${uploadedFile ? "text-indigo-600" : "text-slate-350"}`} />
                         <span>Preview Matrix</span>
                         {uploadedFile && (
                           <span className="ml-1 px-1.5 py-0.5 bg-indigo-200 text-indigo-800 text-[8px] rounded font-mono font-extrabold uppercase animate-pulse">
