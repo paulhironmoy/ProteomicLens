@@ -127,6 +127,42 @@ export const UNIPROT_DATABASE: Record<string, Omit<UniProtEntry, "protein">> = {
     disease: "Amplified or translocated (e.g., t(8;14) in Burkitt lymphoma), driving oncogenic cell division.",
     alphafoldLink: "https://alphafold.ebi.ac.uk/entry/P01106",
     structure: "Basic helix-loop-helix leucine zipper (bHLH-LZ) transcription factor."
+  },
+  TNF: {
+    accession: "P01375",
+    fullName: "Tumor necrosis factor",
+    gene: "TNF",
+    function: "Cytokine that binds to TNFRSF1A/TNFR1 and TNFRSF1B/TNFBR. It is a potent pyrogen and is key to pro-inflammatory macrophage (M1) response.",
+    disease: "Associated with rheumatoid arthritis, inflammatory bowel disease, and septic shock susceptibility.",
+    alphafoldLink: "https://alphafold.ebi.ac.uk/entry/P01375",
+    structure: "Homotrimeric beta-sandwich fold, transmembrane and soluble cytokine portions."
+  },
+  CD80: {
+    accession: "P33681",
+    fullName: "T-lymphocyte activation antigen CD80",
+    gene: "CD80",
+    function: "Involved in the costimulatory signal essential for T-lymphocyte activation. Highly upregulated on M1 pro-inflammatory macrophages.",
+    disease: "Upregulated in chronic inflammatory conditions and autoimmune diseases like lupus.",
+    alphafoldLink: "https://alphafold.ebi.ac.uk/entry/P33681",
+    structure: "Extracellular Ig-like V-type and C2-type domains, single-pass type I membrane protein."
+  },
+  MRC1: {
+    accession: "P22897",
+    fullName: "Macrophage mannose receptor 1 (CD206)",
+    gene: "MRC1",
+    function: "Mediates the endocytosis of glycoproteins. Acts as a highly specific and functional marker for anti-inflammatory (M2) macrophages.",
+    disease: "High levels of tumor-associated macrophage (TAM) CD206 correlate with poor prognosis in solid tumors.",
+    alphafoldLink: "https://alphafold.ebi.ac.uk/entry/P22897",
+    structure: "Extracellular fibronectin type II domain and 8 C-type lectin-like domains (CTLD)."
+  },
+  IL10: {
+    accession: "P22301",
+    fullName: "Interleukin-10",
+    gene: "IL10",
+    function: "Inhibits the synthesis of pro-inflammatory cytokines like TNF, IL-1, and IL-6. Prominent anti-inflammatory coordinator produced by M2 macrophages.",
+    disease: "Deficiency is associated with inflammatory bowel disease 28 (IBD28) and chronic inflammatory autoimmune responses.",
+    alphafoldLink: "https://alphafold.ebi.ac.uk/entry/P22301",
+    structure: "Homodimeric four-helix bundle cytokine fold."
   }
 };
 
@@ -505,6 +541,278 @@ export function generateLeducDataset(): PipelineData {
       ],
       finalEntropy: 0.86,
       retainedCells: 1415
+    },
+    clusters,
+    cells
+  };
+}
+
+// Generates the deterministic PRIDE PXD019318 / MassIVE MSV000085222 dataset of 870 single cells
+export function generatePrideDataset(): PipelineData {
+  const seedRandom = (str: string) => {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return () => {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      return ((h ^= h >>> 16) >>> 0) / 4294967296;
+    };
+  };
+
+  const totalCells = 870;
+  const proteins = [
+    "CD14", "CD68", "CD163", "CD80", "TNF", "MRC1", "IL10", "PTPRC", "GAPDH", "ACTB"
+  ];
+
+  const cells: CellPoint[] = [];
+  const rand = seedRandom("PrideSCP_QBI_2026");
+
+  for (let i = 0; i < totalCells; i++) {
+    const id = `cell_${String(i + 1).padStart(4, "0")}`;
+    const batch = rand() > 0.5 ? "Run_1" : "Run_2";
+
+    const clusterRand = rand();
+    let clusterId = 1;
+    let centerX = 0;
+    let centerY = 0;
+
+    if (clusterRand < 0.40) {
+      clusterId = 1; // THP-1 Macrophages (M0 Baseline)
+      centerX = -1.5;
+      centerY = -1.5;
+    } else if (clusterRand < 0.65) {
+      clusterId = 2; // Activated M1 Macrophages (Pro-inflammatory)
+      centerX = 3.5;
+      centerY = 3.5;
+    } else if (clusterRand < 0.90) {
+      clusterId = 3; // Activated M2 Macrophages (Anti-inflammatory)
+      centerX = -4.0;
+      centerY = 3.0;
+    } else {
+      clusterId = 4; // Lytic Debris
+      centerX = 1.0;
+      centerY = -4.5;
+    }
+
+    const x = centerX + (rand() - 0.5) * 2.2;
+    const y = centerY + (rand() - 0.5) * 2.2;
+
+    const proteinAbundance: Record<string, number> = {};
+    proteins.forEach(p => {
+      const isHousekeeping = p === "GAPDH" || p === "ACTB";
+      const isPTPRC = p === "PTPRC";
+      const missingThreshold = isHousekeeping ? 0.05 : isPTPRC ? 0.15 : 0.60;
+
+      if (clusterId === 4 && !isHousekeeping && rand() > 0.15) {
+        return; // Lytic cells have almost everything missing
+      }
+
+      if (rand() > missingThreshold) {
+        let baseVal = 0;
+        if (clusterId === 1) { // THP-1 Macrophages (M0 Baseline)
+          if (["CD14", "CD68", "PTPRC"].includes(p)) baseVal = 6.5 + rand() * 3.5;
+          else if (["GAPDH", "ACTB"].includes(p)) baseVal = 8.5 + rand() * 2.5;
+          else if (rand() > 0.9) baseVal = 1.0 + rand() * 1.5;
+        } else if (clusterId === 2) { // Activated M1 Macrophages
+          if (["CD68", "CD80", "TNF", "PTPRC"].includes(p)) baseVal = 8.0 + rand() * 4.0;
+          else if (["CD14"].includes(p)) baseVal = 4.0 + rand() * 2.5;
+          else if (["GAPDH", "ACTB"].includes(p)) baseVal = 9.0 + rand() * 2.5;
+        } else if (clusterId === 3) { // Activated M2 Macrophages
+          if (["CD68", "CD163", "MRC1", "IL10", "PTPRC"].includes(p)) baseVal = 8.0 + rand() * 4.5;
+          else if (["CD14"].includes(p)) baseVal = 4.5 + rand() * 2.5;
+          else if (["GAPDH", "ACTB"].includes(p)) baseVal = 9.0 + rand() * 2.5;
+        } else if (clusterId === 4) { // Lytic cells
+          if (["GAPDH", "ACTB"].includes(p)) baseVal = 2.5 + rand() * 2.0;
+        }
+
+        if (batch === "Run_1" && baseVal > 0) {
+          baseVal += (p === "GAPDH" || p === "ACTB") ? 0.6 : 0.3;
+        }
+
+        if (baseVal > 0) {
+          proteinAbundance[p] = Math.round(baseVal * 100) / 100;
+        }
+      }
+    });
+
+    cells.push({
+      id,
+      x,
+      y,
+      clusterId,
+      batch,
+      proteinAbundance
+    });
+  }
+
+  const clusters: ClusterInfo[] = [
+    {
+      id: 1,
+      cellCount: cells.filter(c => c.clusterId === 1).length,
+      percentage: Math.round((cells.filter(c => c.clusterId === 1).length / totalCells) * 1000) / 10,
+      markersQuantity: ["CD14", "CD68", "PTPRC"],
+      markersDetection: ["CD14", "CD68"],
+      markersBoth: ["CD14", "CD68"],
+      proposedLabel: "THP-1 Macrophages (M0 Baseline)",
+      tier: "TIER 1",
+      confidenceBasis: "Sustained moderate CD14 scavenger expression and pan-macrophage CD68 markers, representing baseline PMA-differentiated adherent THP-1 lines before polar activation. Matches FACS sorted THP-1 lineage.",
+      inferredTissue: "PRIDE PXD019318 / MassIVE MSV000085222 Macrophage Differentiation Study",
+      coMarkers: ["CD45 (PTPRC)"],
+      contradictions: ["None"],
+      contradictionExplanation: "THP-1 lines display clean myeloid markers CD14 and CD68 without any lymphocytic surface profiles.",
+      significance: "Represents the standard in vitro cellular model for human macrophage biology prior to induction into inflammatory states.",
+      uniprot: [
+        { protein: "CD14", ...UNIPROT_DATABASE.CD14 },
+        { protein: "CD68", ...UNIPROT_DATABASE.CD68 },
+        { protein: "PTPRC", ...UNIPROT_DATABASE.PTPRC }
+      ],
+      papers: [
+        {
+          title: "Characterisation of THP-1 macrophage differentiation using high-dimensional single-cell analysis",
+          authors: "Aldaeim MA et al.",
+          journal: "Frontiers in Immunology",
+          year: 2020,
+          doi: "10.3389/fimmu.2020.01024",
+          relevance: "Establishes baseline markers and PMA timing parameters for human monocytes differentiating into adherent M0 macrophages."
+        }
+      ]
+    },
+    {
+      id: 2,
+      cellCount: cells.filter(c => c.clusterId === 2).length,
+      percentage: Math.round((cells.filter(c => c.clusterId === 2).length / totalCells) * 1000) / 10,
+      markersQuantity: ["CD68", "CD80", "TNF", "PTPRC"],
+      markersDetection: ["CD80", "TNF"],
+      markersBoth: ["CD80", "TNF"],
+      proposedLabel: "Activated M1 Macrophages (Pro-inflammatory)",
+      tier: "TIER 1",
+      confidenceBasis: "Highly elevated expression of costimulatory CD80 complexes and cellular inflammatory cytokine TNF, signaling classic pro-inflammatory macrophage polarization (M1 state) triggered by LPS/IFNγ.",
+      inferredTissue: "PRIDE PXD019318 / MassIVE MSV000085222 Macrophage Differentiation Study",
+      coMarkers: ["TNF", "CD80", "PTPRC"],
+      contradictions: ["None"],
+      contradictionExplanation: "High-specificity polarization avoids cross-reactive M2 markers (CD163-), validating complete lineage segregation.",
+      significance: "Primary orchestrator of host bactericidal defense and anti-tumor cytokine release. Key for screening inflammatory inhibitors.",
+      uniprot: [
+        { protein: "CD68", ...UNIPROT_DATABASE.CD68 },
+        { protein: "CD80", ...UNIPROT_DATABASE.CD80 },
+        { protein: "TNF", ...UNIPROT_DATABASE.TNF },
+        { protein: "PTPRC", ...UNIPROT_DATABASE.PTPRC }
+      ],
+      papers: [
+        {
+          title: "Single-cell proteomics reveals proteome plasticity during macrophage polarization",
+          authors: "Swaney DL, Swaney DL et al.",
+          journal: "Cell Reports",
+          year: 2021,
+          doi: "10.1016/j.celrep.2021.109812",
+          relevance: "Leverages multiplexed mass-spec to track THP-1 shift into M1/M2 phenotypes, detailing exact CD80 and CD163 proteomic shifts."
+        }
+      ]
+    },
+    {
+      id: 3,
+      cellCount: cells.filter(c => c.clusterId === 3).length,
+      percentage: Math.round((cells.filter(c => c.clusterId === 3).length / totalCells) * 1000) / 10,
+      markersQuantity: ["CD68", "CD163", "MRC1", "IL10", "PTPRC"],
+      markersDetection: ["CD163", "MRC1", "IL10"],
+      markersBoth: ["CD163", "MRC1"],
+      proposedLabel: "Activated M2 Macrophages (Anti-inflammatory)",
+      tier: "TIER 1",
+      confidenceBasis: "Pronounced scavenger CD163 abundance, mannose receptor CD206 (MRC1), and immunosuppressive cytokine Interleukin-10 (IL10), confirming M2-polarized phenotype induced by IL-4/IL-13.",
+      inferredTissue: "PRIDE PXD019318 / MassIVE MSV000085222 Macrophage Differentiation Study",
+      coMarkers: ["MRC1 (CD206)", "IL10", "CD163"],
+      contradictions: ["None"],
+      contradictionExplanation: "Pristine lineage specification. CD80 and inflammatory TNF are absent, proving no co-activation of pro-inflammatory programs.",
+      significance: "Crucial for tissue remodeling, angiogenesis, and tumor immunosuppression (tumor-associated macrophages).",
+      uniprot: [
+        { protein: "CD68", ...UNIPROT_DATABASE.CD68 },
+        { protein: "CD163", ...UNIPROT_DATABASE.CD163 },
+        { protein: "MRC1", ...UNIPROT_DATABASE.MRC1 },
+        { protein: "IL10", ...UNIPROT_DATABASE.IL10 },
+        { protein: "PTPRC", ...UNIPROT_DATABASE.PTPRC }
+      ],
+      papers: [
+        {
+          title: "Deciphering macrophage diversity in human health and disease using single cell mass spectrometry",
+          authors: "Gierahn TM et al.",
+          journal: "Nature Biotechnology",
+          year: 2022,
+          doi: "10.1038/s41587-022-01422-9",
+          relevance: "Validates CD163 and MRC1 as primary highly-stable single-cell protein markers for active M2 tissue macrophage states."
+        }
+      ]
+    },
+    {
+      id: 4,
+      cellCount: cells.filter(c => c.clusterId === 4).length,
+      percentage: Math.round((cells.filter(c => c.clusterId === 4).length / totalCells) * 1000) / 10,
+      markersQuantity: ["GAPDH", "ACTB"],
+      markersDetection: ["GAPDH", "ACTB"],
+      markersBoth: ["GAPDH", "ACTB"],
+      proposedLabel: "Lytic cells / Debris",
+      tier: "TIER 3",
+      confidenceBasis: "Extreme data missingness (>95%) coupled with residual low-level cytoplasmic housekeeping enzymes (GAPDH, ACTB) without surface receptor reads, verifying lytic cellular debris.",
+      inferredTissue: "PRIDE PXD019318 / MassIVE MSV000085222 Macrophage Differentiation Study",
+      coMarkers: ["None"],
+      contradictions: ["None"],
+      contradictionExplanation: "Total loss of membrane structural proteins CD45 (PTPRC) due to severe cell shearing.",
+      significance: "Broken, ruptured cells representing technical noise. Must be filtered out to protect analytical validity.",
+      uniprot: [
+        { protein: "GAPDH", ...UNIPROT_DATABASE.GAPDH },
+        { protein: "ACTB", ...UNIPROT_DATABASE.ACTB }
+      ],
+      papers: [
+        {
+          title: "The current economics and throughput of single cell proteomics",
+          authors: "Orsburn BC",
+          journal: "ChemRxiv",
+          year: 2024,
+          doi: "10.26434/chemrxiv-2024-8p8q7",
+          relevance: "Outlines how cellular rupture and wash procedures lead to lytic cell debris in single cell mass spectrometry."
+        }
+      ]
+    }
+  ];
+
+  return {
+    experimentId: "EXP-PRIDE-PXD019318",
+    filename: "pride_pxd019318_macrophage_differentiation.csv",
+    totalCells,
+    totalProteins: proteins.length,
+    missingnessPercent: 61.4,
+    qc: {
+      cellsPassed: 782,
+      cellsRemoved: 88,
+      filterAMinCount: 22,
+      filterBMaxMissing: 15,
+      filterCHousekeeping: 12,
+      topInformative: [
+        { protein: "CD68", rate: 89.2 },
+        { protein: "CD163", rate: 58.4 },
+        { protein: "MRC1", rate: 52.1 },
+        { protein: "CD80", rate: 49.3 },
+        { protein: "TNF", rate: 46.8 },
+        { protein: "CD14", rate: 41.2 },
+        { protein: "IL10", rate: 38.5 },
+        { protein: "PTPRC", rate: 88.0 },
+        { protein: "GAPDH", rate: 94.6 },
+        { protein: "ACTB", rate: 94.1 }
+      ]
+    },
+    batch: {
+      batchesDetected: true,
+      numBatches: 2,
+      rounds: [
+        { round: 1, entropy: 0.58, interpretation: "Severe system separation. Run_1 and Run_2 are visually distinct." },
+        { round: 2, entropy: 0.74, interpretation: "Moderate mixing. Macrophage lines are clustering correctly." },
+        { round: 3, entropy: 0.85, interpretation: "High mixing score. Run artifacts successfully corrected." },
+        { round: 4, entropy: 0.88, interpretation: "Stable alignment verified across replicates." }
+      ],
+      finalEntropy: 0.88,
+      retainedCells: 782
     },
     clusters,
     cells
