@@ -524,6 +524,17 @@ interface StepVisualizerProps {
   onClearHistory: () => void;
 }
 
+const getClusterColor = (id: number) => {
+  const colors: Record<number, { bg: string; border: string; text: string; ring: string; dot: string; hover: string; accent: string }> = {
+    1: { bg: "bg-teal-50/70", border: "border-teal-200/80", text: "text-teal-900", ring: "ring-teal-400", dot: "bg-teal-500", hover: "hover:bg-teal-50", accent: "text-teal-600" },
+    2: { bg: "bg-blue-50/70", border: "border-blue-200/80", text: "text-blue-900", ring: "ring-blue-400", dot: "bg-blue-500", hover: "hover:bg-blue-50", accent: "text-blue-600" },
+    3: { bg: "bg-purple-50/70", border: "border-purple-200/80", text: "text-purple-900", ring: "ring-purple-400", dot: "bg-purple-500", hover: "hover:bg-purple-50", accent: "text-purple-600" },
+    4: { bg: "bg-rose-50/70", border: "border-rose-200/80", text: "text-rose-900", ring: "ring-rose-400", dot: "bg-rose-500", hover: "hover:bg-rose-50", accent: "text-rose-600" },
+    5: { bg: "bg-amber-50/70", border: "border-amber-200/80", text: "text-amber-900", ring: "ring-amber-400", dot: "bg-amber-500", hover: "hover:bg-amber-50", accent: "text-amber-600" },
+  };
+  return colors[id] || { bg: "bg-slate-50", border: "border-slate-200/80", text: "text-slate-900", ring: "ring-slate-400", dot: "bg-slate-500", hover: "hover:bg-slate-50", accent: "text-slate-600" };
+};
+
 export default function StepVisualizer({
   pipelineData,
   selectedClusterId,
@@ -1799,77 +1810,236 @@ export default function StepVisualizer({
 
         {/* STEP 6: Literature Insights */}
         {activeStep === 6 && (
-          <div className="space-y-4">
-            <div className="p-3 bg-indigo-50/60 border border-indigo-100/70 rounded-xl text-xs text-indigo-950 font-sans flex items-start gap-1.5">
-              <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-              <div>
-                <strong>
-                  {audience === "researcher" ? "Automated PubMed Crawl & Citation Synthesizer:" : audience === "biologist" ? "Auto-Literature Research & Citation Finder:" : "Checking Global Science Library:"}
-                </strong>{" "}
-                {audience === "researcher"
-                  ? "Crawls published biological repositories to index peer-reviewed PMIDs/DOIs validating the observed co-expression boundaries."
-                  : audience === "biologist"
-                  ? "Scans millions of PubMed publications to confirm our cell annotations align with established published biology."
-                  : "Searches major medical archives to find published papers that support our cellular discoveries."}
+          <div className="space-y-5">
+            {/* Header / Intro Banner */}
+            <div className="p-4 bg-indigo-50/40 border border-indigo-100/60 rounded-2xl text-xs text-slate-700 font-sans flex items-start gap-3 shadow-xs">
+              <div className="p-2 bg-indigo-100/80 rounded-xl text-indigo-700 shrink-0">
+                <BookOpen className="w-4.5 h-4.5" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-extrabold text-slate-900 text-[13px] flex items-center gap-1.5">
+                  <span>PubMed Agentic Evidence Synthesis</span>
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+                    Verified
+                  </span>
+                </div>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  {audience === "researcher"
+                    ? "Crawls published biological repositories to index peer-reviewed PMIDs/DOIs validating the observed co-expression boundaries."
+                    : audience === "biologist"
+                    ? "Scans millions of PubMed publications to confirm our cell annotations align with established published biology."
+                    : "Searches major medical archives to find published papers that support our cellular discoveries."}
+                </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed font-sans">
-              {audience === "researcher"
-                ? "Evidence synthesis crawl completed. Retrieved PMID records mapped to relative annotation cohorts:"
-                : audience === "biologist"
-                ? "These peer-reviewed publications biologically validate the marker combinations observed in our cells:"
-                : "These real scientific papers and books support the cell discoveries we just made:"}
-            </p>
+            {/* Interactive Cluster Tabs */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider font-mono block">
+                Filter by Cell Cluster (Click to map literature & highlight on map):
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {/* "All Clusters" Option */}
+                <button
+                  onClick={() => onSelectCluster(null)}
+                  className={`p-2.5 rounded-xl border text-left transition-all duration-200 shadow-2xs cursor-pointer flex flex-col justify-between ${
+                    selectedClusterId === null
+                      ? "bg-slate-950 text-white border-slate-950 ring-2 ring-slate-800 ring-offset-2"
+                      : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${selectedClusterId === null ? "bg-white" : "bg-slate-400"}`} />
+                    <span className="text-xs font-bold truncate">All Clusters</span>
+                  </div>
+                  <span className="text-[10px] opacity-75 mt-1 font-mono block">
+                    {pipelineData.clusters.length} Groups
+                  </span>
+                </button>
 
-            <div className="space-y-3 font-sans">
+                {/* Each Individual Cluster Option */}
+                {pipelineData.clusters.map((c) => {
+                  const isSelected = selectedClusterId === c.id;
+                  const colors = getClusterColor(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => onSelectCluster(isSelected ? null : c.id)}
+                      className={`p-2.5 rounded-xl border text-left transition-all duration-200 shadow-2xs cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? `${colors.bg} ${colors.border} ring-2 ${colors.ring} ring-offset-2`
+                          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors.dot}`} />
+                        <span className="text-xs font-bold truncate block">
+                          Cluster {c.id}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] mt-1 truncate block font-medium ${isSelected ? colors.accent : "text-slate-500"}`}>
+                        {c.proposedLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="space-y-4 font-sans">
               {pipelineData.clusters
                 .filter((c) => selectedClusterId === null || c.id === selectedClusterId)
-                .map((c) => (
-                  <div key={c.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <h4 className="text-xs font-bold text-teal-600 mb-3 uppercase tracking-wider font-mono">
-                      Cluster {c.id} ({c.proposedLabel}) Scientific Evidence:
-                    </h4>
-                    <div className="space-y-4 divide-y divide-slate-200">
-                      {c.papers.slice(0, 3).map((paper, idx) => (
-                        <div key={idx} className={`${idx > 0 ? "pt-3.5" : ""}`}>
-                          <div className="flex items-start justify-between gap-4">
-                            <h5 className="text-xs font-bold text-slate-800 font-sans leading-snug">
-                              {paper.title}
-                            </h5>
-                            <span className="text-[10px] font-mono bg-white text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded">
-                              {paper.year}
-                            </span>
+                .map((c) => {
+                  const colors = getClusterColor(c.id);
+                  return (
+                    <div
+                      key={c.id}
+                      className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+                    >
+                      {/* Cluster Header Section */}
+                      <div className="bg-slate-50/80 px-4 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-3 h-3 rounded-full ${colors.dot}`} />
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider font-mono">
+                              Cluster {c.id} · Verification Report
+                            </h4>
+                            <h3 className="text-sm font-black text-slate-800 font-sans">
+                              {c.proposedLabel}
+                            </h3>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-1">
-                            {paper.authors} · <span className="italic">{paper.journal}</span>
-                          </p>
-                          <p className="text-[11px] text-slate-600 italic mt-1.5 leading-relaxed bg-white p-2 rounded-xl border border-slate-100">
-                            Relevance: {paper.relevance}
-                          </p>
-                          <a
-                            href={`https://doi.org/${paper.doi}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] text-teal-600 hover:underline block mt-2 font-semibold"
-                          >
-                            Read full paper (DOI: {paper.doi})
-                          </a>
-
-                          {/* Dynamic explainability and structured citation sources */}
-                          {(() => {
-                            const paperExpKey = paper.authors.toLowerCase().includes("wherry") || paper.title.toLowerCase().includes("signature")
-                              ? "Leduc et al."
-                              : paper.authors.toLowerCase().includes("schoof") || paper.authors.toLowerCase().includes("econom")
-                              ? "Schoof et al."
-                              : "Specht et al.";
-                            return renderExplainSection(`paper-${c.id}-${idx}`, PAPER_EXPLANATIONS[paperExpKey]);
-                          })()}
                         </div>
-                      ))}
+
+                        {/* Badges bar */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-slate-600">
+                            {c.cellCount} cells ({c.percentage}%)
+                          </span>
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 border rounded-full ${
+                            c.tier === "TIER 1"
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : c.tier === "TIER 2"
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                              : "bg-slate-50 border-slate-200 text-slate-700"
+                          }`}>
+                            {c.tier}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Cluster Annotation Evidence & Meta Statistics */}
+                      <div className="p-4 bg-slate-50/20 border-b border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="bg-white p-3 rounded-xl border border-slate-200/50">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider font-mono block mb-1">
+                            Biological Co-Markers Linked
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {c.markersQuantity.map((mark) => (
+                              <span key={mark} className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                                {mark}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-xl border border-slate-200/50">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider font-mono block mb-1">
+                            NCBI PubMed Search Query
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-600 block bg-slate-50 p-1 rounded border border-slate-100 truncate animate-pulse" title={`(single cell) AND (${c.proposedLabel} OR ${c.markersQuantity.join(" OR ")})`}>
+                            {`"${c.proposedLabel.split(" ")[0]}" AND (${c.markersQuantity.slice(0, 3).join(", ")})`}
+                          </span>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-xl border border-slate-200/50">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider font-mono block mb-1">
+                            Annotation Confidence Basis
+                          </span>
+                          <p className="text-[10px] text-slate-600 font-sans font-medium line-clamp-2">
+                            {c.confidenceBasis || "Matched against reference bone marrow and single-cell atlas parameters."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Mapped Literature Papers */}
+                      <div className="p-4 space-y-4">
+                        <h5 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-mono">
+                          Verified Bibliographic Sources ({c.papers.length}):
+                        </h5>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          {c.papers.slice(0, 3).map((paper, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-xs transition-all duration-200 relative overflow-hidden flex flex-col md:flex-row md:items-start justify-between gap-4 group"
+                            >
+                              {/* Left Accent Bar matching cluster */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.dot}`} />
+
+                              <div className="space-y-2 flex-1 pl-1">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                      <h5 className="text-xs font-black text-slate-800 leading-snug font-sans group-hover:text-slate-900 transition-colors">
+                                        {paper.title}
+                                      </h5>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 font-medium">
+                                      {paper.authors} · <span className="italic font-bold text-slate-600">{paper.journal}</span>
+                                    </p>
+                                  </div>
+                                  <span className="text-[10px] font-mono font-bold bg-slate-50 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md shrink-0 shadow-2xs">
+                                    {paper.year}
+                                  </span>
+                                </div>
+
+                                {/* Relevance Quote Box */}
+                                <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-3 text-[11px] text-slate-600 italic leading-relaxed relative">
+                                  <strong className="not-italic text-indigo-900 font-extrabold text-[10px] uppercase tracking-wide block mb-1 font-mono">
+                                    💡 Landmark Relevance
+                                  </strong>
+                                  &ldquo;{paper.relevance}&rdquo;
+                                </div>
+
+                                {/* AI Explainer Dropdown Integration */}
+                                {(() => {
+                                  const paperExpKey = paper.authors.toLowerCase().includes("wherry") || paper.title.toLowerCase().includes("signature")
+                                    ? "Leduc et al."
+                                    : paper.authors.toLowerCase().includes("schoof") || paper.authors.toLowerCase().includes("econom")
+                                    ? "Schoof et al."
+                                    : "Specht et al.";
+                                  return renderExplainSection(`paper-${c.id}-${idx}`, PAPER_EXPLANATIONS[paperExpKey]);
+                                })()}
+                              </div>
+
+                              {/* Actions Panel */}
+                              <div className="md:border-l md:border-slate-100 md:pl-4 flex flex-col justify-start items-stretch gap-2 shrink-0 w-full md:w-48 pt-3 md:pt-0">
+                                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider font-mono block text-center md:text-left mb-1">
+                                  Access Reference
+                                </span>
+                                <a
+                                  href={`https://doi.org/${paper.doi}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full text-center px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-[11px] text-slate-700 hover:text-slate-900 font-bold rounded-xl transition-all inline-flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                                >
+                                  <span>PubMed Journal</span>
+                                  <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600" />
+                                </a>
+                                <span className="text-[9px] font-mono text-slate-400 text-center md:text-left block truncate">
+                                  DOI: {paper.doi}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         )}
