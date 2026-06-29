@@ -735,7 +735,7 @@ Click on each stage to check results.`,
                   Single Cell Proteomics — Done Fast
                 </h2>
                 <p className="text-xs sm:text-xs md:text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed font-semibold font-sans">
-                  Annotation time cut from 3–4 days to &lt;2 minutes. ProteomicLens is the first single-cell proteomics (SCP) platform to combine enforced canonical terminology and confidence-tiered AI annotation with real-time literature lookup—bypassing 10+ hours of manual paper verification to enable same-visit clinical proteomics decisions.
+                  ProteomicLens is the first single-cell proteomics (SCP) platform to combine enforced canonical terminology and confidence-tiered AI annotation with real-time literature lookup—completing in under 2 minutes what normally requires 20+ hours of manual curation and paper verification, enabling same-visit clinical proteomics decisions.
                 </p>
               </div>
 
